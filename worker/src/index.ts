@@ -1,3 +1,5 @@
+import { renderContactEmail } from "./emailTemplate"
+
 export interface Env {
   RESEND_API_KEY: string
   ALLOWED_ORIGINS: string
@@ -30,15 +32,6 @@ function json(data: unknown, status: number, headers: HeadersInit): Response {
     status,
     headers: { ...headers, "Content-Type": "application/json" },
   })
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;")
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -83,6 +76,8 @@ export default {
       return json({ ok: false, error: "invalid_message" }, 400, headers)
     }
 
+    const { html, text } = renderContactEmail({ name, email, message, company })
+
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -94,13 +89,8 @@ export default {
         to: [env.TO_ADDRESS],
         reply_to: email,
         subject: `Nueva consulta desde altotest.cl — ${name}`,
-        text: `Nombre / empresa: ${name}${company ? ` (${company})` : ""}\nCorreo: ${email}\n\n${message}`,
-        html: `
-          <p><strong>Nombre / empresa:</strong> ${escapeHtml(name)}${company ? ` (${escapeHtml(company)})` : ""}</p>
-          <p><strong>Correo:</strong> ${escapeHtml(email)}</p>
-          <p><strong>Mensaje:</strong></p>
-          <p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>
-        `,
+        text,
+        html,
       }),
     })
 
