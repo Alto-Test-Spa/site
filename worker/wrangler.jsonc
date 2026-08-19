@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "altotest-contact",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "vars": {
+    "ALLOWED_ORIGINS": "http://localhost:5183,https://www.altotest.cl,https://altotest.cl",
+    "FROM_ADDRESS": "Alto Test <formulario@altotest.cl>",
+    "TO_ADDRESS": "contacto@altotest.cl"
+  }
+}

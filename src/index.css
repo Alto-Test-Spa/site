@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #f4f5f2;
+  --color-stage: #ddded9;
+  --color-ink: #10151e;
+  --color-ink-soft: #1b2430;
+  --color-steel: #4c6b7a;
+  --color-steel-light: #8fa3ad;
+  --color-steel-pale: #cbd5d8;
+  --color-steel-body: #2a313b;
+  --color-signal: #c2491f;
+  --color-signal-glow: #e2723d;
+  --color-signal-deep: #8a3316;
+
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+
+  --animate-pulse-glow: pulse-glow 5s ease-in-out infinite;
+  --animate-drift: drift 14s ease-in-out infinite;
+
+  @keyframes pulse-glow {
+    0%,
+    100% {
+      opacity: 0.28;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.42;
+      transform: scale(1.08);
+    }
+  }
+
+  @keyframes drift {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(18px, -14px);
+    }
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  .glow-blob {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(70px);
+    pointer-events: none;
+  }
+
+  .grid-fine {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-size: 32px 32px;
+  }
+
+  .grid-fine-ink {
+    background-image:
+      linear-gradient(to right, rgb(16 21 30 / 5.5%) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(16 21 30 / 5.5%) 1px, transparent 1px);
+  }
+
+  .grid-fine-paper {
+    background-image:
+      linear-gradient(to right, rgb(244 245 242 / 6%) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(244 245 242 / 6%) 1px, transparent 1px);
+  }
+}
