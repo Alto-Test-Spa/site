@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import type { FormEvent } from "react"
 import { Mail, Globe, MapPin, Loader2, CheckCircle2 } from "lucide-react"
 import { Reveal } from "./ui/Reveal"
@@ -13,9 +13,15 @@ const CONTACT_ENDPOINT = import.meta.env.VITE_CONTACT_ENDPOINT as
 type Status = "idle" | "loading" | "success" | "error"
 type FieldErrors = Partial<Record<"name" | "email" | "phone" | "message", string>>
 
+function autoGrow(el: HTMLTextAreaElement) {
+  el.style.height = "auto"
+  el.style.height = `${Math.min(el.scrollHeight, 240)}px`
+}
+
 export function Contact() {
   const [status, setStatus] = useState<Status>("idle")
   const [errors, setErrors] = useState<FieldErrors>({})
+  const messageRef = useRef<HTMLTextAreaElement>(null)
 
   function clearError(field: keyof FieldErrors) {
     setErrors((prev) => {
@@ -71,6 +77,7 @@ export function Contact() {
       if (!res.ok) throw new Error("request_failed")
       setStatus("success")
       form.reset()
+      if (messageRef.current) messageRef.current.style.height = ""
     } catch {
       setStatus("error")
     }
@@ -210,12 +217,16 @@ export function Contact() {
                   CUÉNTENOS SOBRE SU ACTIVO
                 </span>
                 <textarea
+                  ref={messageRef}
                   name="message"
-                  rows={3}
+                  rows={1}
                   maxLength={5000}
                   placeholder="Tipo de infraestructura, sistemas existentes, plazos…"
-                  onChange={() => clearError("message")}
-                  className={`resize-none ${fieldClass("message")}`}
+                  onChange={(e) => {
+                    clearError("message")
+                    autoGrow(e.currentTarget)
+                  }}
+                  className={`min-h-[76px] resize-none overflow-y-auto ${fieldClass("message")}`}
                 />
                 {errors.message && (
                   <p className="mt-1.5 text-xs text-signal-glow">{errors.message}</p>
