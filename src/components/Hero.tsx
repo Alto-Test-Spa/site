@@ -117,13 +117,13 @@ export function Hero() {
           className="mb-[52px] flex items-center justify-center gap-3.5"
         >
           <a
-            href="#contacto"
+            href="/#contacto"
             className="rounded-[4px] bg-gradient-to-br from-signal to-signal-deep px-[26px] py-[15px] font-mono text-xs tracking-[0.08em] text-paper uppercase shadow-[0_10px_24px_-12px_rgb(194_73_31_/_55%)] transition-[filter] hover:brightness-110"
           >
             Solicitar diagnóstico técnico
           </a>
           <a
-            href="#servicios"
+            href="/#servicios"
             className="rounded-[4px] border border-paper/25 px-6 py-[14px] font-mono text-xs tracking-[0.08em] text-paper uppercase transition-colors hover:border-paper/50"
           >
             Ver nuestros servicios

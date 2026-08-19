@@ -1,13 +1,13 @@
 import { Wordmark } from "./ui/Wordmark"
 
 const LEFT_LINKS = [
-  { href: "#metodo", label: "Método" },
-  { href: "#servicios", label: "Servicios" },
+  { href: "/#metodo", label: "Método" },
+  { href: "/#servicios", label: "Servicios" },
 ]
 
 const RIGHT_LINKS = [
-  { href: "#evidencia", label: "Gestión con evidencia" },
-  { href: "#posicionamiento", label: "Por qué Alto Test" },
+  { href: "/#evidencia", label: "Gestión con evidencia" },
+  { href: "/#posicionamiento", label: "Por qué Alto Test" },
 ]
 
 function NavLink({ href, label }: { href: string; label: string }) {
@@ -30,7 +30,7 @@ export function Nav() {
         ))}
       </div>
 
-      <a href="#top" className="xl:justify-self-center">
+      <a href="/#top" className="xl:justify-self-center">
         <Wordmark tone="steel" />
       </a>
 
@@ -39,7 +39,7 @@ export function Nav() {
           <NavLink key={link.href} {...link} />
         ))}
         <a
-          href="#contacto"
+          href="/#contacto"
           className="ml-auto rounded-[4px] bg-gradient-to-br from-signal to-signal-deep px-5 py-2.5 font-mono text-[11px] tracking-[0.08em] text-paper uppercase whitespace-nowrap transition-[filter] hover:brightness-110"
         >
           Solicitar diagnóstico
@@ -47,7 +47,7 @@ export function Nav() {
       </div>
 
       <a
-        href="#contacto"
+        href="/#contacto"
         className="rounded-[4px] bg-gradient-to-br from-signal to-signal-deep px-5 py-2.5 font-mono text-[11px] tracking-[0.08em] text-paper uppercase whitespace-nowrap transition-[filter] hover:brightness-110 xl:hidden"
       >
         Solicitar diagnóstico

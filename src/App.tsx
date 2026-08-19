@@ -1,26 +1,28 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { Nav } from "./components/Nav"
-import { Hero } from "./components/Hero"
-import { Method } from "./components/Method"
-import { Services } from "./components/Services"
-import { Evidence } from "./components/Evidence"
-import { Positioning } from "./components/Positioning"
-import { Contact } from "./components/Contact"
 import { Footer } from "./components/Footer"
 import { WhatsAppButton } from "./components/WhatsAppButton"
+import { ErrorBoundary } from "./components/ErrorBoundary"
+import { ScrollToHash } from "./components/ScrollToHash"
+import { Home } from "./pages/Home"
+import { NotFound } from "./pages/NotFound"
 
 function App() {
   return (
-    <div className="bg-paper text-ink">
-      <Nav />
-      <Hero />
-      <Method />
-      <Services />
-      <Evidence />
-      <Positioning />
-      <Contact />
-      <Footer />
-      <WhatsAppButton />
-    </div>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <div className="bg-paper text-ink">
+          <ScrollToHash />
+          <Nav />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Footer />
+          <WhatsAppButton />
+        </div>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 

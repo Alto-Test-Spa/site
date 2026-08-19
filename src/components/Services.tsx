@@ -110,7 +110,7 @@ export function Services() {
                 </p>
               </div>
               <a
-                href="#contacto"
+                href="/#contacto"
                 className="inline-flex shrink-0 items-center gap-2 rounded-[4px] bg-gradient-to-br from-signal to-signal-deep px-6 py-[15px] font-mono text-xs tracking-[0.08em] text-paper uppercase shadow-[0_10px_24px_-12px_rgb(194_73_31_/_55%)] transition-[filter] hover:brightness-110"
               >
                 Solicitar reunión técnica
