@@ -4,23 +4,30 @@ import { Mail, Globe, MapPin, Loader2, CheckCircle2 } from "lucide-react"
 import { Reveal } from "./ui/Reveal"
 import { SectionEyebrow } from "./ui/GlowCard"
 import { GlowBlob } from "./ui/GlowBlob"
+import { isValidEmail, isValidChileanPhone } from "../lib/validation"
 
 const CONTACT_ENDPOINT = import.meta.env.VITE_CONTACT_ENDPOINT as
   | string
   | undefined
 
 type Status = "idle" | "loading" | "success" | "error"
+type FieldErrors = Partial<Record<"name" | "email" | "phone" | "message", string>>
 
 export function Contact() {
   const [status, setStatus] = useState<Status>("idle")
+  const [errors, setErrors] = useState<FieldErrors>({})
+
+  function clearError(field: keyof FieldErrors) {
+    setErrors((prev) => {
+      if (!prev[field]) return prev
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!CONTACT_ENDPOINT) {
-      setStatus("error")
-      return
-    }
-
     const form = e.currentTarget
     const data = new FormData(form)
 
@@ -31,16 +38,35 @@ export function Contact() {
       return
     }
 
+    const name = String(data.get("name") ?? "").trim()
+    const email = String(data.get("email") ?? "").trim()
+    const phone = String(data.get("phone") ?? "").trim()
+    const message = String(data.get("message") ?? "").trim()
+
+    const nextErrors: FieldErrors = {}
+    if (!name) nextErrors.name = "Ingrese su nombre."
+    if (!isValidEmail(email)) nextErrors.email = "Ingrese un correo válido."
+    if (!isValidChileanPhone(phone))
+      nextErrors.phone = "Ingrese un teléfono chileno válido (+56 9 1234 5678)."
+    if (!message) nextErrors.message = "Cuéntenos brevemente qué necesita."
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors)
+      return
+    }
+
+    if (!CONTACT_ENDPOINT) {
+      setStatus("error")
+      return
+    }
+
+    setErrors({})
     setStatus("loading")
     try {
       const res = await fetch(CONTACT_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: data.get("name"),
-          email: data.get("email"),
-          message: data.get("message"),
-        }),
+        body: JSON.stringify({ name, email, phone, message }),
       })
       if (!res.ok) throw new Error("request_failed")
       setStatus("success")
@@ -49,6 +75,11 @@ export function Contact() {
       setStatus("error")
     }
   }
+
+  const fieldClass = (field: keyof FieldErrors) =>
+    `w-full border-b bg-transparent pb-2.5 text-sm text-paper placeholder-steel-light outline-none focus:border-signal-glow ${
+      errors[field] ? "border-signal-glow" : "border-paper/15"
+    }`
 
   return (
     <div
@@ -108,7 +139,11 @@ export function Contact() {
               </p>
             </div>
           ) : (
-            <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+            <form
+              className="flex flex-col gap-6"
+              onSubmit={handleSubmit}
+              noValidate
+            >
               <input
                 type="text"
                 name="website"
@@ -124,37 +159,67 @@ export function Contact() {
                 <input
                   type="text"
                   name="name"
-                  required
                   maxLength={200}
                   placeholder="Ej. Javiera Muñoz — Constructora Andes"
-                  className="w-full border-b border-paper/15 bg-transparent pb-2.5 text-sm text-paper placeholder-steel-light outline-none focus:border-signal-glow"
+                  onChange={() => clearError("name")}
+                  className={fieldClass("name")}
                 />
+                {errors.name && (
+                  <p className="mt-1.5 text-xs text-signal-glow">{errors.name}</p>
+                )}
               </label>
-              <label className="block">
-                <span className="mb-2 block font-mono text-[10px] tracking-[0.1em] text-steel-light">
-                  CORREO
-                </span>
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  maxLength={200}
-                  placeholder="nombre@empresa.cl"
-                  className="w-full border-b border-paper/15 bg-transparent pb-2.5 text-sm text-paper placeholder-steel-light outline-none focus:border-signal-glow"
-                />
-              </label>
+
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block font-mono text-[10px] tracking-[0.1em] text-steel-light">
+                    CORREO
+                  </span>
+                  <input
+                    type="email"
+                    name="email"
+                    maxLength={200}
+                    placeholder="nombre@empresa.cl"
+                    onChange={() => clearError("email")}
+                    className={fieldClass("email")}
+                  />
+                  {errors.email && (
+                    <p className="mt-1.5 text-xs text-signal-glow">{errors.email}</p>
+                  )}
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block font-mono text-[10px] tracking-[0.1em] text-steel-light">
+                    TELÉFONO
+                  </span>
+                  <input
+                    type="tel"
+                    name="phone"
+                    maxLength={20}
+                    placeholder="+56 9 1234 5678"
+                    onChange={() => clearError("phone")}
+                    className={fieldClass("phone")}
+                  />
+                  {errors.phone && (
+                    <p className="mt-1.5 text-xs text-signal-glow">{errors.phone}</p>
+                  )}
+                </label>
+              </div>
+
               <label className="block">
                 <span className="mb-2 block font-mono text-[10px] tracking-[0.1em] text-steel-light">
                   CUÉNTENOS SOBRE SU ACTIVO
                 </span>
                 <textarea
                   name="message"
-                  required
-                  rows={2}
+                  rows={3}
                   maxLength={5000}
                   placeholder="Tipo de infraestructura, sistemas existentes, plazos…"
-                  className="w-full resize-none border-b border-paper/15 bg-transparent pb-3 text-sm text-paper placeholder-steel-light outline-none focus:border-signal-glow"
+                  onChange={() => clearError("message")}
+                  className={`resize-none ${fieldClass("message")}`}
                 />
+                {errors.message && (
+                  <p className="mt-1.5 text-xs text-signal-glow">{errors.message}</p>
+                )}
               </label>
 
               {status === "error" && (

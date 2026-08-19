@@ -20,10 +20,11 @@ const SANS =
 export function renderContactEmail(input: {
   name: string
   email: string
+  phone: string
   message: string
   company?: string
 }): { html: string; text: string } {
-  const { name, email, message, company } = input
+  const { name, email, phone, message, company } = input
 
   const receivedAt = new Date().toLocaleString("es-CL", {
     timeZone: "America/Santiago",
@@ -33,6 +34,8 @@ export function renderContactEmail(input: {
 
   const safeName = escapeHtml(name)
   const safeEmail = escapeHtml(email)
+  const safePhone = escapeHtml(phone)
+  const phoneHref = escapeHtml(phone.replace(/[^\d+]/g, ""))
   const safeCompany = company ? escapeHtml(company) : ""
   const safeMessage = escapeHtml(message).replace(/\n/g, "<br>")
   const replySubject = encodeURIComponent(`Re: consulta en altotest.cl`)
@@ -42,6 +45,7 @@ export function renderContactEmail(input: {
     "",
     `Nombre / empresa: ${name}${company ? ` (${company})` : ""}`,
     `Correo: ${email}`,
+    `Teléfono: ${phone}`,
     `Recibido: ${receivedAt}`,
     "",
     "Mensaje:",
@@ -113,12 +117,22 @@ export function renderContactEmail(input: {
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding:16px 20px;">
+                  <td style="padding:16px 20px; border-bottom:1px solid ${LINE};">
                     <div style="font-family:${MONO}; font-size:10px; letter-spacing:1.5px; color:${STEEL}; text-transform:uppercase; padding-bottom:4px;">
                       Correo
                     </div>
                     <div style="font-family:${SANS}; font-size:15px; color:${INK};">
                       <a href="mailto:${safeEmail}" style="color:${INK}; text-decoration:none;">${safeEmail}</a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <div style="font-family:${MONO}; font-size:10px; letter-spacing:1.5px; color:${STEEL}; text-transform:uppercase; padding-bottom:4px;">
+                      Teléfono
+                    </div>
+                    <div style="font-family:${SANS}; font-size:15px; color:${INK};">
+                      <a href="tel:${phoneHref}" style="color:${INK}; text-decoration:none;">${safePhone}</a>
                     </div>
                   </td>
                 </tr>

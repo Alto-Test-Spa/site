@@ -10,6 +10,7 @@ export interface Env {
 interface ContactPayload {
   name: string
   email: string
+  phone: string
   message: string
   company?: string
   // Honeypot: real visitors never fill this hidden field.
@@ -35,6 +36,16 @@ function json(data: unknown, status: number, headers: HeadersInit): Response {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+// Accepts +56 9 1234 5678, 56912345678, 912345678, with any mix of
+// spaces/dashes/parens. Chilean national numbers are 9 digits starting 2-9
+// (9 = mobile, 2 = Santiago landline, other regions use other leading digits).
+function isValidChileanPhone(value: string): boolean {
+  const digits = value.replace(/\D/g, "")
+  const national =
+    digits.startsWith("56") && digits.length === 11 ? digits.slice(2) : digits
+  return /^[2-9]\d{8}$/.test(national)
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -63,6 +74,7 @@ export default {
 
     const name = (body.name ?? "").trim()
     const email = (body.email ?? "").trim()
+    const phone = (body.phone ?? "").trim()
     const message = (body.message ?? "").trim()
     const company = (body.company ?? "").trim()
 
@@ -72,11 +84,14 @@ export default {
     if (!email || email.length > 200 || !EMAIL_RE.test(email)) {
       return json({ ok: false, error: "invalid_email" }, 400, headers)
     }
+    if (!phone || phone.length > 20 || !isValidChileanPhone(phone)) {
+      return json({ ok: false, error: "invalid_phone" }, 400, headers)
+    }
     if (!message || message.length > 5000) {
       return json({ ok: false, error: "invalid_message" }, 400, headers)
     }
 
-    const { html, text } = renderContactEmail({ name, email, message, company })
+    const { html, text } = renderContactEmail({ name, email, phone, message, company })
 
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
