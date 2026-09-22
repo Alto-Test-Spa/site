@@ -34,7 +34,12 @@ export default function Verify() {
 
       {loading && <p>Buscando…</p>}
 
-      {result && !result.found && <p className="verify-not-found">No encontramos ningún certificado con ese folio.</p>}
+      {result && !result.found && (
+        <p className="verify-not-found">
+          No encontramos ningún certificado con ese folio, o no hay conexión con el servidor. Verifica el folio e
+          inténtalo de nuevo.
+        </p>
+      )}
 
       {result && result.found && (
         <div className={`verify-result ${result.valid ? 'is-valid' : 'is-expired'}`}>

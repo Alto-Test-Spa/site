@@ -36,17 +36,28 @@ export interface VerificationNotFound {
 }
 
 export async function fetchVerification(code: string): Promise<VerificationResult | VerificationNotFound> {
-  const res = await fetch(`${BASE_URL}/verify/certificado/${encodeURIComponent(code)}`)
-  if (!res.ok) return { found: false }
-  const envelope = (await res.json()) as { code: string; updatedAt: number; doc: CertificateDoc }
-  const expiration = parseDdMmAaaa(envelope.doc.expirationDate)
-  // Truncar "hoy" a medianoche antes de comparar: el día completo del
-  // vencimiento cuenta como vigente, mismo criterio que
-  // digital_certificate/src/lib/date.ts's isStillValid() — sin esto, el
-  // certificado aparece "vencido" apenas pasa la medianoche de su propio
-  // día de vencimiento, mientras el editor todavía lo muestra vigente.
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const valid = expiration !== null && today.getTime() <= expiration.getTime()
-  return { found: true, code: envelope.code, updatedAt: envelope.updatedAt, doc: envelope.doc, valid }
+  // Sin try/catch acá, un fetch que falla (red caída, CORS, o el propio
+  // Worker devolviendo algo que no es JSON) rechaza la promesa sin que
+  // nadie la capture — la página se queda muda para siempre, sin mensaje
+  // de error ni de "no encontrado" (mismo bug de fondo que
+  // digital_certificate/src/lib/api.ts ya tuvo con AccessGate/autoguardado).
+  try {
+    const res = await fetch(`${BASE_URL}/verify/certificado/${encodeURIComponent(code)}`, {
+      signal: AbortSignal.timeout(15_000),
+    })
+    if (!res.ok) return { found: false }
+    const envelope = (await res.json()) as { code: string; updatedAt: number; doc: CertificateDoc }
+    const expiration = parseDdMmAaaa(envelope.doc.expirationDate)
+    // Truncar "hoy" a medianoche antes de comparar: el día completo del
+    // vencimiento cuenta como vigente, mismo criterio que
+    // digital_certificate/src/lib/date.ts's isStillValid() — sin esto, el
+    // certificado aparece "vencido" apenas pasa la medianoche de su propio
+    // día de vencimiento, mientras el editor todavía lo muestra vigente.
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const valid = expiration !== null && today.getTime() <= expiration.getTime()
+    return { found: true, code: envelope.code, updatedAt: envelope.updatedAt, doc: envelope.doc, valid }
+  } catch {
+    return { found: false }
+  }
 }
