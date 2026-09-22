@@ -6,6 +6,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary"
 import { ScrollToHash } from "./components/ScrollToHash"
 import { Home } from "./pages/Home"
 import { NotFound } from "./pages/NotFound"
+import Verify from "./pages/Verify"
 
 function App() {
   return (
@@ -16,6 +17,8 @@ function App() {
           <Nav />
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/verifica/:folio" element={<Verify />} />
+            <Route path="/verifica" element={<Verify />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Footer />
