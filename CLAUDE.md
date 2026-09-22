@@ -46,6 +46,7 @@ src/
   App.tsx                 Router + ErrorBoundary + Nav/Footer/WhatsAppButton persistentes
   pages/
     Home.tsx               el one-pager: Hero, Method, Services, Evidence, Positioning, Contact
+    Verify.tsx              /verifica — verificación pública de certificados, ver abajo
     NotFound.tsx            404 con catenaria "cortada"
   components/               una sección de Home = un archivo (Hero, Method, Services, Evidence,
                              Positioning, Contact) + Nav, Footer, WhatsAppButton, ErrorBoundary,
@@ -53,8 +54,12 @@ src/
   components/ui/            primitivos: Reveal, GlowBlob, GlowCard/SectionEyebrow, Chip,
                              IconBadge, Counter, Logomark (isotipo chico), Wordmark (texto+curva)
   lib/validation.ts         email + teléfono chileno — duplicado a propósito en worker/ (ver abajo)
+  lib/verify.ts              fetchVerification() contra el Worker compartido de las apps de
+                              documentos (`../altotest-documentos/`, NO `worker/` de acá abajo —
+                              son dos Workers distintos, ver "Verificación pública")
 worker/                     proyecto npm INDEPENDIENTE (su propio package.json/wrangler.jsonc),
-                             Cloudflare Worker desplegado aparte, no Cloudflare Pages Functions
+                             Cloudflare Worker desplegado aparte, no Cloudflare Pages Functions —
+                             sólo para el formulario de contacto, ver "Formulario de contacto"
 ```
 
 `worker/` no se instala con el `npm install` de la raíz — es otro
@@ -118,9 +123,11 @@ de a lado, otros de a poco"). Al agregar una sección nueva, no copies
 
 ## Routing
 
-`react-router-dom`, `BrowserRouter`. Una sola ruta real (`/` → `Home`) +
-catch-all `*` → `NotFound`. Nav/Footer/WhatsAppButton viven en `App.tsx`
-FUERA de `<Routes>` para persistir en todas las páginas, incluida la 404.
+`react-router-dom`, `BrowserRouter`. Rutas reales: `/` → `Home`,
+`/verifica/:folio` y `/verifica` (sin folio, formulario vacío) → `Verify`
+(ver "Verificación pública" más abajo) + catch-all `*` → `NotFound`.
+Nav/Footer/WhatsAppButton viven en `App.tsx` FUERA de `<Routes>` para
+persistir en todas las páginas, incluida la 404 y `/verifica`.
 
 Los links internos usan `href="/#seccion"` (con barra), **no**
 `href="#seccion"` — sin la barra, un link clickeado desde una ruta que no
@@ -184,18 +191,65 @@ vía `wrangler secret put`, no la lee el frontend) y
 Después de tocar `.env` hay que reiniciar `npm run dev` — Vite lo
 detecta solo pero a veces tarda un segundo restart.
 
+## Verificación pública de certificados (`/verifica`, `src/pages/Verify.tsx`)
+
+Página a la que apunta el QR (y el folio impreso) de los certificados que
+genera `../digital_certificate/`. Consulta `GET /verify/:kind/:code` del
+Worker **compartido de la familia de documentos**
+(`../altotest-documentos/`, `VITE_REPORTS_ENDPOINT`) — **no** el `worker/`
+de este mismo repo (ese es sólo para el formulario de contacto, ver
+arriba; son dos Workers Cloudflare completamente distintos, con distinto
+código y distinto propósito, que sólo comparten la cuenta de Cloudflare).
+Esa ruta es pública a propósito (sin `Authorization`): cualquiera que reciba
+el certificado en papel tiene que poder confirmarlo sin la clave de equipo
+de Alto Test.
+
+**Vigente/vencido se calcula acá, no en el Worker** (`src/lib/verify.ts`):
+el Worker nunca interpreta `doc` (ver `altotest-documentos/CLAUDE.md`,
+"Contrato universal"), así que la fecha de vencimiento se compara del lado
+del cliente, con la MISMA semántica que `digital_certificate/src/lib/date.ts`'s
+`isStillValid()` — **duplicado a propósito**, mismo criterio que
+`lib/validation.ts` de este mismo repo (ver "Formulario de contacto" →
+"Validación duplicada a propósito"). Si se cambia el criterio de vigencia
+en `digital_certificate`, hay que replicarlo acá a mano; no hay paquete
+compartido entre los dos repos.
+
+**`fetchVerification()` tiene que manejar CUALQUIER falla del `fetch`, no
+sólo un status no-ok** — bug real en producción (2026-09-22): sin
+`try/catch`, un `fetch()` que rechaza (red caída, o — lo que pasó de
+verdad — `VITE_REPORTS_ENDPOINT` sin configurar en Vercel, armando una URL
+relativa rota que el `vercel.json` redirige al `index.html` del sitio, y
+`res.json()` explota al intentar parsear HTML como JSON) dejaba la página
+muda para siempre: sin "Buscando…", sin resultado, sin mensaje de error.
+Fix: `try/catch` alrededor de todo `fetchVerification`, más
+`AbortSignal.timeout(15_000)` (mismo patrón que
+`digital_certificate/src/lib/api.ts`), y el mensaje de "no encontrado"
+ahora reconoce que también puede ser un fallo de conexión.
+
+**`VITE_REPORTS_ENDPOINT` es una variable de Vite: sólo se aplica al hacer
+build, no en runtime** — si se agrega/cambia en Vercel después del último
+deploy, hace falta un **Redeploy** manual (sin usar el build cache) para
+que tome efecto; con el código ya pusheado no alcanza. Pasó de verdad al
+conectar esta página en producción — quedó sin efecto hasta el redeploy
+manual.
+
+Reusa los mismos primitivos visuales que el resto del sitio (`GlowCard`,
+`Chip` con variantes `ok`/`warn` para vigente/vencido, `SectionEyebrow`,
+`Reveal`) — la primera versión de esta página no tenía ningún estilo
+(clases CSS custom sin reglas definidas, texto plano sin jerarquía);
+se rehizo con el sistema de diseño existente en vez de escribir CSS nuevo.
+
 ## DNS y hosting — estado real, no asumir
 
 `altotest.cl` y `www.altotest.cl` **ya están en Cloudflare** como DNS
 (nameservers `carlane`/`decker.ns.cloudflare.com`), pero:
 - **MX apunta a Google Workspace** (`smtp.google.com`) — no tocar, ahí
   vive el correo real de la empresa.
-- **El CNAME apex hoy apunta a Vercel** (`vercel-dns-...`), igual que
-  `digital-email-sig...` y `technical-propos...` (los otros proyectos
-  hermanos). El dominio real sirve HOY el sitio viejo desde Vercel — este
-  proyecto nuevo (`site`) **todavía no está deployado ahí**. Antes de
-  asumir dónde va a vivir, pregunta; el `vercel.json` y el
-  `public/_redirects` ya están listos para cualquiera de los dos casos.
+- **El CNAME apex apunta a Vercel** (`vercel-dns-...`). Este proyecto
+  (`site`) **ya está deployado ahí y es el que sirve `altotest.cl` en
+  producción** (confirmado el 2026-09-22: `/verifica` responde en el
+  dominio real) — ya no es el sitio viejo. Cada push a `main` dispara un
+  redeploy automático en Vercel.
 
 ## Bugs ya resueltos (no reintroducir)
 
@@ -208,6 +262,8 @@ detecta solo pero a veces tarda un segundo restart.
 | Chip "Aprobado" en naranjo (`variant="warn"`) | El naranjo se lee como alerta; "aprobado" es buena noticia. Usar `variant="ok"` (tono acero neutro). |
 | Texto "Instalado" cortado en el timeline SVG del Servicio 05 | `viewBox` sin margen izquierdo suficiente para el `text-anchor="middle"` del primer nodo. Dar más ancho al viewBox y separar los nodos. |
 | Scroll a `/#seccion` no bajaba tras una navegación completa (ej. desde la 404) | El router client-side no dispara el scroll-a-hash nativo del navegador en transiciones sin recarga. Fix: `ScrollToHash.tsx` con `useLocation` + `scrollIntoView` manual. |
+| `/verifica` se quedaba muda (sin resultado ni error) si el fetch al Worker fallaba | `fetchVerification()` sin `try/catch` — una promesa rechazada (red, o JSON inválido) nunca llegaba a setear ningún estado. Fix + timeout de 15s, ver "Verificación pública". |
+| Certificado aparecía "vencido" desde las 00:00:01 de su propio día de vencimiento | Comparación de fechas sin truncar "hoy" a medianoche, divergía de `digital_certificate`'s `isStillValid()`. Fix: `today.setHours(0,0,0,0)` antes de comparar, en `src/lib/verify.ts`. |
 
 ## Verificación
 
@@ -227,8 +283,6 @@ en un scratch dir si el harness no lo trae en `node_modules`.
 - **Bundle ~230KB gzip** — Recharts es el grueso. Antes de producción,
   evaluar `dynamic import()` para Evidence/Services (están below the
   fold, no necesitan estar en el chunk inicial).
-- **Deploy real**: falta decidir Vercel vs Cloudflare Pages y ejecutarlo
-  — ver "DNS y hosting" arriba antes de tocar nada del dominio.
 - **Contenido de "Gestión con evidencia"** (KPIs, gráficos) es
   ilustrativo a propósito, marcado como tal en el propio sitio ("Vista
   ilustrativa del formato de reporte"). Conectar a datos reales cuando
