@@ -40,6 +40,13 @@ export async function fetchVerification(code: string): Promise<VerificationResul
   if (!res.ok) return { found: false }
   const envelope = (await res.json()) as { code: string; updatedAt: number; doc: CertificateDoc }
   const expiration = parseDdMmAaaa(envelope.doc.expirationDate)
-  const valid = expiration !== null && new Date() <= expiration
+  // Truncar "hoy" a medianoche antes de comparar: el día completo del
+  // vencimiento cuenta como vigente, mismo criterio que
+  // digital_certificate/src/lib/date.ts's isStillValid() — sin esto, el
+  // certificado aparece "vencido" apenas pasa la medianoche de su propio
+  // día de vencimiento, mientras el editor todavía lo muestra vigente.
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const valid = expiration !== null && today.getTime() <= expiration.getTime()
   return { found: true, code: envelope.code, updatedAt: envelope.updatedAt, doc: envelope.doc, valid }
 }
